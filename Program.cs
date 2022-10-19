@@ -49,13 +49,14 @@ static void WriteAllFilesAndDirectoriesUnderPathToWorksheet(ref ExcelWorksheet w
     }
 }
 
-static List<Tuple<string, long, string>> GetTopLargestFiles(string path)
+static List<Tuple<string, long, string>> GetTopLargestFiles(string path, int depth = 1)
 {
     var result = new List<Tuple<string, long, string>>();
 
     var rootDirectory = new DirectoryInfo(path);
     foreach (DirectoryInfo currentDirectory in rootDirectory.GetDirectories())
     {
+        if (depth > 1) GetTopLargestFiles(Path.Combine(path, currentDirectory.Name), depth - 1);
         foreach (FileInfo file in currentDirectory.GetFiles())
         {
             result.Add(new(file.FullName, file.Length, file.Extension ));
@@ -83,6 +84,8 @@ static List<(string, int, long)> GetTopLargestFilesStats(List<Tuple<string, long
     return result;
 }
 
+
+
 ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
 var excelSaveLocation = Path.Combine(Directory.GetCurrentDirectory(), "lab1_180348.xlsx");
@@ -93,15 +96,19 @@ if (File.Exists(excelSaveLocation))
     File.Delete(excelSaveLocation);
 }
 
+
 var excelPackage = new ExcelPackage(new FileInfo(excelSaveLocation));
 var worksheetWithFiles = excelPackage.Workbook.Worksheets.Add("Struktura katalogu");
 var rootPath = Directory.GetCurrentDirectory() + "\\..\\..\\..";
 
 var iterator = 1;
-WriteAllFilesAndDirectoriesUnderPathToWorksheet(ref worksheetWithFiles, ref iterator, rootPath, 2);
+var depth = 2;
+WriteAllFilesAndDirectoriesUnderPathToWorksheet(ref worksheetWithFiles, ref iterator, rootPath, depth);
 
 var worksheetWithStats = excelPackage.Workbook.Worksheets.Add("Statystyki");
-var topLargestFiles = GetTopLargestFiles(rootPath).GetRange(0, 10).ToList();
+var topLargestFiles = GetTopLargestFiles(rootPath, depth).GetRange(0, 10).ToList();
+
+
 
 for (int i = 0; i < topLargestFiles.Count; i++)
 {
@@ -118,6 +125,8 @@ for (int i = 0; i < topLargestFilesStats.Count; i++)
     worksheetWithStats.Cells[i + 1, 6].Value = topLargestFilesStats[i].Item3;
 }
 
+
+
 var chartWithExtensionAmount = (worksheetWithStats.Drawings.AddChart("Extensions Amount", eChartType.Pie3D) as ExcelPieChart);
 if (chartWithExtensionAmount != null)
 {
@@ -130,6 +139,8 @@ if (chartWithExtensionAmount != null)
     chartWithExtensionAmount.DataLabel.ShowCategory = true;
     chartWithExtensionAmount.DataLabel.ShowPercent = true;
 }
+
+
 
 var chartWithFileSizeByExtensions = (worksheetWithStats.Drawings.AddChart("File Size By Extensions", eChartType.Pie3D) as ExcelPieChart);
 if (chartWithFileSizeByExtensions != null)
