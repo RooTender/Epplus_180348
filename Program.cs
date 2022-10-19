@@ -3,7 +3,6 @@ using OfficeOpenXml;
 using OfficeOpenXml.Drawing.Chart;
 using System;
 using System.Collections.Generic;
-using System.Data.Common;
 using System.IO;
 using System.Linq;
 using File = System.IO.File;
@@ -22,26 +21,27 @@ static string FileSizeToString(long fileSizeInBytes)
     return string.Format("{0} {1}", fileSizeInBytes, suffix[suffixIndex]);
 }
 
-static void WriteAllFilesAndDirectoriesUnderPathToWorksheet(string path, ref ExcelWorksheet worksheet, int column = 1)
+static void WriteAllFilesAndDirectoriesUnderPathToWorksheet(ref ExcelWorksheet worksheet, ref int iterator, string path, int depth = 1, int directoryLevelDepth = 1)
 {
     var rootDirectory = new DirectoryInfo(path);
 
-    var iterator = 1;
     foreach (DirectoryInfo currentDirectory in rootDirectory.GetDirectories())
     {
-        worksheet.Cells[iterator, column].Value = currentDirectory.FullName;
-        worksheet.Row(iterator).OutlineLevel = 1;
+        worksheet.Cells[iterator, 1].Value = currentDirectory.FullName;
+        worksheet.Row(iterator).OutlineLevel = directoryLevelDepth;
 
         iterator++;
 
+        if (depth > 1) WriteAllFilesAndDirectoriesUnderPathToWorksheet(ref worksheet, ref iterator, Path.Combine(path, currentDirectory.Name), depth - 1, directoryLevelDepth + 1);
+
         foreach (FileInfo file in currentDirectory.GetFiles())
         {
-            worksheet.Cells[iterator, column].Value = file.FullName;
-            worksheet.Cells[iterator, column + 1].Value = file.Extension;
-            worksheet.Cells[iterator, column + 2].Value = FileSizeToString(file.Length);
-            worksheet.Cells[iterator, column + 3].Value = file.Attributes.ToString();
+            worksheet.Cells[iterator, 1].Value = file.FullName;
+            worksheet.Cells[iterator, 2].Value = file.Extension;
+            worksheet.Cells[iterator, 3].Value = FileSizeToString(file.Length);
+            worksheet.Cells[iterator, 4].Value = file.Attributes.ToString();
 
-            worksheet.Row(iterator).OutlineLevel = 2;
+            worksheet.Row(iterator).OutlineLevel = directoryLevelDepth + 1;
             worksheet.Row(iterator).Collapsed = true;
 
             iterator++;
@@ -97,7 +97,8 @@ var excelPackage = new ExcelPackage(new FileInfo(excelSaveLocation));
 var worksheetWithFiles = excelPackage.Workbook.Worksheets.Add("Struktura katalogu");
 var rootPath = Directory.GetCurrentDirectory() + "\\..\\..\\..";
 
-WriteAllFilesAndDirectoriesUnderPathToWorksheet(rootPath, ref worksheetWithFiles);
+var iterator = 1;
+WriteAllFilesAndDirectoriesUnderPathToWorksheet(ref worksheetWithFiles, ref iterator, rootPath, 2);
 
 var worksheetWithStats = excelPackage.Workbook.Worksheets.Add("Statystyki");
 var topLargestFiles = GetTopLargestFiles(rootPath).GetRange(0, 10).ToList();
