@@ -24,13 +24,20 @@ static void WriteAllFilesAndDirectoriesUnderPathToWorksheet(string path, ref Exc
     var iterator = 1;
     foreach (DirectoryInfo currentDirectory in rootDirectory.GetDirectories())
     {
-        worksheet.Cells[iterator++, column].Value = currentDirectory.FullName;
+        worksheet.Cells[iterator, column].Value = currentDirectory.FullName;
+        worksheet.Row(iterator).OutlineLevel = 1;
+
+        iterator++;
+
         foreach (FileInfo file in currentDirectory.GetFiles())
         {
             worksheet.Cells[iterator, column].Value = file.FullName;
             worksheet.Cells[iterator, column + 1].Value = file.Extension;
             worksheet.Cells[iterator, column + 2].Value = FileSizeToString(file.Length);
             worksheet.Cells[iterator, column + 3].Value = file.Attributes.ToString();
+
+            worksheet.Row(iterator).OutlineLevel = 2;
+            worksheet.Row(iterator).Collapsed = true;
 
             iterator++;
         }
