@@ -1,6 +1,9 @@
 ﻿using OfficeOpenXml;
 using System;
+using System.Collections.Generic;
+using System.Data.Common;
 using System.IO;
+using System.Linq;
 using File = System.IO.File;
 
 static string FileSizeToString(long fileSizeInBytes)
@@ -44,6 +47,22 @@ static void WriteAllFilesAndDirectoriesUnderPathToWorksheet(string path, ref Exc
     }
 }
 
+static List<KeyValuePair<string, long>> GetTopLargestFiles(string path)
+{
+    var result = new List<KeyValuePair<string, long>>();
+
+    var rootDirectory = new DirectoryInfo(path);
+    foreach (DirectoryInfo currentDirectory in rootDirectory.GetDirectories())
+    {
+        foreach (FileInfo file in currentDirectory.GetFiles())
+        {
+            result.Add(new( file.FullName, file.Length ));
+        }
+    }
+
+    return result.OrderByDescending(x => x.Value).ToList();
+}
+
 ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
 var excelSaveLocation = Path.Combine(Directory.GetCurrentDirectory(), "lab1_180348.xlsx");
@@ -56,8 +75,17 @@ if (File.Exists(excelSaveLocation))
 
 var excelPackage = new ExcelPackage(new FileInfo(excelSaveLocation));
 var worksheetWithFiles = excelPackage.Workbook.Worksheets.Add("Struktura katalogu");
+var rootPath = Directory.GetCurrentDirectory() + "\\..\\..\\..";
 
-WriteAllFilesAndDirectoriesUnderPathToWorksheet(Directory.GetCurrentDirectory() + "\\..\\..\\..", ref worksheetWithFiles);
+WriteAllFilesAndDirectoriesUnderPathToWorksheet(rootPath, ref worksheetWithFiles);
+
+var worksheetWithStats = excelPackage.Workbook.Worksheets.Add("Statystyki");
+var topLargestFiles = GetTopLargestFiles(rootPath).GetRange(0, 10).ToList();
+
+for(int i = 0; i < topLargestFiles.Count; i++)
+{
+    worksheetWithStats.Cells[i + 1, 1].Value = topLargestFiles[i].Key;
+}
 
 excelPackage.Save();
 excelPackage.Dispose();
