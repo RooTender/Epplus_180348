@@ -47,6 +47,10 @@
             "EPPlus": {
               "target": "Package",
               "version": "[6.0.8, )"
+            },
+            "Terminal.Gui": {
+              "target": "Package",
+              "version": "[1.8.2, )"
             }
           },
           "imports": [
