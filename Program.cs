@@ -88,25 +88,68 @@ static List<(string, int, long)> GetTopLargestFilesStats(List<Tuple<string, long
 
 ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
-var excelSaveLocation = Path.Combine(Directory.GetCurrentDirectory(), "lab1_180348.xlsx");
+Console.Write("Name of the directory to scan: ");
+var path = Console.ReadLine();
+
+Console.Write("Depth scan level (default is 1): ");
+var depthLevelAsText = Console.ReadLine();
+
+if (path == null || depthLevelAsText == null)
+{
+    Console.WriteLine("Something is wrong. The given parameters were registered as NULLs. Quitting...");
+    return;
+}
+
+if (!int.TryParse(depthLevelAsText, out int depthLevel))
+{
+    Console.WriteLine("The given depth level has incorrect format (not a number)!");
+    return;
+}
+
+if (depthLevel < 1)
+{
+    Console.WriteLine("The given depth level cannot be smaller than 1!");
+    return;
+}
+
+if (!Directory.Exists(path))
+{
+    Console.WriteLine("The given directory does not exist!");
+    return;
+}
+
+var excelSaveLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "lab1_180348.xlsx");
 Console.WriteLine($"File will be saved under location: {excelSaveLocation}");
 
 if (File.Exists(excelSaveLocation))
 {
-    File.Delete(excelSaveLocation);
+    try
+    {
+        File.Delete(excelSaveLocation);
+    }
+    catch(Exception e)
+    {
+        if (e.GetType() == typeof(UnauthorizedAccessException))
+        {
+            Console.WriteLine($"This application is not authorized to remove the old excel file.");
+        }
+
+        Console.WriteLine($"Cannot remove stale excel file ({excelSaveLocation}). Please do it manually.");
+        return;
+    }
 }
 
 
 var excelPackage = new ExcelPackage(new FileInfo(excelSaveLocation));
 var worksheetWithFiles = excelPackage.Workbook.Worksheets.Add("Struktura katalogu");
-var rootPath = Directory.GetCurrentDirectory() + "\\..\\..\\..";
 
 var iterator = 1;
 var depth = 2;
-WriteAllFilesAndDirectoriesUnderPathToWorksheet(ref worksheetWithFiles, ref iterator, rootPath, depth);
+WriteAllFilesAndDirectoriesUnderPathToWorksheet(ref worksheetWithFiles, ref iterator, path, depth);
 
 var worksheetWithStats = excelPackage.Workbook.Worksheets.Add("Statystyki");
-var topLargestFiles = GetTopLargestFiles(rootPath, depth).GetRange(0, 10).ToList();
+var topLargestFiles = GetTopLargestFiles(path, depth);
+topLargestFiles = topLargestFiles.GetRange(0, topLargestFiles.Count < 10 ? topLargestFiles.Count : 10).ToList();
 
 
 
