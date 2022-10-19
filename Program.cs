@@ -117,21 +117,31 @@ for (int i = 0; i < topLargestFilesStats.Count; i++)
     worksheetWithStats.Cells[i + 1, 6].Value = topLargestFilesStats[i].Item3;
 }
 
-var chart = (worksheetWithStats.Drawings.AddChart("PieChart", eChartType.Pie3D) as ExcelPieChart);
-if (chart != null)
+var chartWithExtensionAmount = (worksheetWithStats.Drawings.AddChart("Extensions Amount", eChartType.Pie3D) as ExcelPieChart);
+if (chartWithExtensionAmount != null)
 {
-    chart.Title.Text = "Procent rozszerzeń ilościowo";
-    chart.SetPosition(12, 10, 1, 10);
-    chart.SetSize(600, 600);
+    chartWithExtensionAmount.Title.Text = "Procent rozszerzeń ilościowo";
+    chartWithExtensionAmount.SetPosition(12, 1, 1, 1);
+    chartWithExtensionAmount.SetSize(600, 600);
 
-    ExcelPieChartSerie chartSerie = chart.Series.Add($"E1:E{topLargestFilesStats.Count}", $"D1:D{topLargestFilesStats.Count}") as ExcelPieChartSerie; ;
+    ExcelPieChartSerie chartSerie = chartWithExtensionAmount.Series.Add($"E1:E{topLargestFilesStats.Count}", $"D1:D{topLargestFilesStats.Count}") as ExcelPieChartSerie; ;
     
-    chart.DataLabel.ShowCategory = true;
-    chart.DataLabel.ShowPercent = true;
-
+    chartWithExtensionAmount.DataLabel.ShowCategory = true;
+    chartWithExtensionAmount.DataLabel.ShowPercent = true;
 }
 
+var chartWithFileSizeByExtensions = (worksheetWithStats.Drawings.AddChart("File Size By Extensions", eChartType.Pie3D) as ExcelPieChart);
+if (chartWithFileSizeByExtensions != null)
+{
+    chartWithFileSizeByExtensions.Title.Text = "Procent rozszerzeń wg rozmiaru";
+    chartWithFileSizeByExtensions.SetPosition(12, 10, 12, 10);
+    chartWithFileSizeByExtensions.SetSize(600, 600);
 
+    ExcelPieChartSerie chartSerie = chartWithFileSizeByExtensions.Series.Add($"F1:F{topLargestFilesStats.Count}", $"D1:D{topLargestFilesStats.Count}") as ExcelPieChartSerie; ;
+
+    chartWithFileSizeByExtensions.DataLabel.ShowCategory = true;
+    chartWithFileSizeByExtensions.DataLabel.ShowPercent = true;
+}
 
 excelPackage.Save();
 excelPackage.Dispose();
