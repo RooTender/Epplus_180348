@@ -1,11 +1,21 @@
 ﻿using OfficeOpenXml;
-using OfficeOpenXml.Style;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using static System.Net.WebRequestMethods;
 using File = System.IO.File;
+
+static string FileSizeToString(long fileSizeInBytes)
+{
+    string[] suffix = { "B", "KB", "MB", "GB", "TB", "PB" };
+    int suffixIndex = 0;
+
+    while (fileSizeInBytes / 1024 > 0)
+    {
+        fileSizeInBytes /= 1024;
+        suffixIndex++;
+    }
+
+    return string.Format("{0} {1}", fileSizeInBytes, suffix[suffixIndex]);
+}
 
 static void WriteAllFilesAndDirectoriesUnderPathToWorksheet(string path, ref ExcelWorksheet worksheet, int column = 1)
 {
@@ -17,7 +27,12 @@ static void WriteAllFilesAndDirectoriesUnderPathToWorksheet(string path, ref Exc
         worksheet.Cells[iterator++, column].Value = currentDirectory.FullName;
         foreach (FileInfo file in currentDirectory.GetFiles())
         {
-            worksheet.Cells[iterator++, column].Value = file.FullName;
+            worksheet.Cells[iterator, column].Value = file.FullName;
+            worksheet.Cells[iterator, column + 1].Value = file.Extension;
+            worksheet.Cells[iterator, column + 2].Value = FileSizeToString(file.Length);
+            worksheet.Cells[iterator, column + 3].Value = file.Attributes.ToString();
+
+            iterator++;
         }
     }
 }
