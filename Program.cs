@@ -1,4 +1,6 @@
-﻿using OfficeOpenXml;
+﻿
+using OfficeOpenXml;
+using OfficeOpenXml.Drawing.Chart;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -47,20 +49,38 @@ static void WriteAllFilesAndDirectoriesUnderPathToWorksheet(string path, ref Exc
     }
 }
 
-static List<KeyValuePair<string, long>> GetTopLargestFiles(string path)
+static List<Tuple<string, long, string>> GetTopLargestFiles(string path)
 {
-    var result = new List<KeyValuePair<string, long>>();
+    var result = new List<Tuple<string, long, string>>();
 
     var rootDirectory = new DirectoryInfo(path);
     foreach (DirectoryInfo currentDirectory in rootDirectory.GetDirectories())
     {
         foreach (FileInfo file in currentDirectory.GetFiles())
         {
-            result.Add(new( file.FullName, file.Length ));
+            result.Add(new(file.FullName, file.Length, file.Extension ));
         }
     }
 
-    return result.OrderByDescending(x => x.Value).ToList();
+    return result.OrderByDescending(x => x.Item2).ToList();
+}
+
+static List<(string, int, long)> GetTopLargestFilesStats(List<Tuple<string, long, string>> topLargestFiles)
+{
+    var uniqueExtensions = topLargestFiles.Select(x => x.Item3).Distinct().ToList();
+
+    var result = new List<(string, int, long)>();
+    foreach (var extension in uniqueExtensions)
+    {
+        var extensionCountInList = topLargestFiles.Count(x => x.Item3 == extension);
+        var totalSizeOfFilesWithExtension = topLargestFiles
+            .Where(x => x.Item3 == extension)
+            .Sum(x => x.Item2);
+
+        result.Add((extension, extensionCountInList, totalSizeOfFilesWithExtension));
+    }
+
+    return result;
 }
 
 ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
@@ -82,10 +102,36 @@ WriteAllFilesAndDirectoriesUnderPathToWorksheet(rootPath, ref worksheetWithFiles
 var worksheetWithStats = excelPackage.Workbook.Worksheets.Add("Statystyki");
 var topLargestFiles = GetTopLargestFiles(rootPath).GetRange(0, 10).ToList();
 
-for(int i = 0; i < topLargestFiles.Count; i++)
+for (int i = 0; i < topLargestFiles.Count; i++)
 {
-    worksheetWithStats.Cells[i + 1, 1].Value = topLargestFiles[i].Key;
+    worksheetWithStats.Cells[i + 1, 1].Value = topLargestFiles[i].Item1;
+    worksheetWithStats.Cells[i + 1, 2].Value = topLargestFiles[i].Item3;
+    worksheetWithStats.Cells[i + 1, 3].Value = topLargestFiles[i].Item2;
 }
+
+var topLargestFilesStats = GetTopLargestFilesStats(topLargestFiles);
+for (int i = 0; i < topLargestFilesStats.Count; i++)
+{
+    worksheetWithStats.Cells[i + 1, 4].Value = topLargestFilesStats[i].Item1;
+    worksheetWithStats.Cells[i + 1, 5].Value = topLargestFilesStats[i].Item2;
+    worksheetWithStats.Cells[i + 1, 6].Value = topLargestFilesStats[i].Item3;
+}
+
+var chart = (worksheetWithStats.Drawings.AddChart("PieChart", eChartType.Pie3D) as ExcelPieChart);
+if (chart != null)
+{
+    chart.Title.Text = "Procent rozszerzeń ilościowo";
+    chart.SetPosition(12, 10, 1, 10);
+    chart.SetSize(600, 600);
+
+    ExcelPieChartSerie chartSerie = chart.Series.Add($"E1:E{topLargestFilesStats.Count}", $"D1:D{topLargestFilesStats.Count}") as ExcelPieChartSerie; ;
+    
+    chart.DataLabel.ShowCategory = true;
+    chart.DataLabel.ShowPercent = true;
+
+}
+
+
 
 excelPackage.Save();
 excelPackage.Dispose();
